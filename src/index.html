@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://maps.googleapis.com; img-src 'self';">
+<title>GeoJSON Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="header">
+    <span class="eyebrow">Geocoding</span>
+    <h1>GeoJSON Lookup</h1>
+  </header>
+
+  <!-- API Key -->
+  <div class="card apikey-card">
+    <div class="apikey-header" id="apikeyHeader">
+      <span class="apikey-label">API Key</span>
+      <span class="key-status" id="keyStatus">未設定</span>
+      <span class="apikey-toggle" id="apikeyToggle">詳細 ▼</span>
+    </div>
+    <div class="apikey-body" id="apikeyBody">
+      <div class="apikey-body-inner">
+        <div class="input-row">
+          <input type="password" id="apiKeyInput" placeholder="AIza..." />
+          <button class="btn-save" id="saveKeyBtn">保存</button>
+        </div>
+        <div class="info-box">📌 <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a> で Geocoding API を有効化し、APIキーを取得してください。<a href="https://developers.google.com/maps/documentation/geocoding/usage-and-billing" target="_blank">月 40,000 リクエストまで無料</a>です。公開サイトで使う場合は <a href="https://console.cloud.google.com/apis/credentials" target="_blank">HTTPリファラー制限</a> の設定を推奨します。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="card search-bar">
+    <div class="search-left-bar">
+      <input type="text" id="queryInput"
+        placeholder="国会議事堂、東京タワー..." />
+      <button id="searchBtn">検索</button>
+      <div class="loading" id="loading"><div class="spinner"></div><span>検索中...</span></div>
+    </div>
+    <div class="search-right-bar">
+      <div class="candidates" id="candidates"><div id="candidateList"></div></div>
+      <span class="candidates-placeholder" id="candidatesPlaceholder">検索すると候補がここに表示されます</span>
+    </div>
+  </div>
+
+  <!-- Template + Result -->
+  <div class="main-row">
+
+    <div class="template-pane">
+      <div class="pane-label">テンプレート</div>
+      <div class="preset-row">
+        <button class="btn-ghost" id="presetLatLng">Geocode のみ</button>
+        <button class="btn-ghost" id="presetWithAddress">住所付き</button>
+        <button class="btn-ghost" id="presetFull">フル</button>
+      </div>
+      <textarea id="templateInput">{
+  "geocode": {
+    "lat": {{lat}},
+    "lng": {{lng}}
+  },
+  "postalCode": "{{postalCode}}",
+  "address": {
+    "prefecture": "{{prefecture}}",
+    "address1": "{{address1}}",
+    "address2": "{{address2}}",
+    "building": "{{building}}"
+  }
+}</textarea>
+      <button class="varref-toggle" id="varrefToggleBtn">変数一覧 <span id="varrefArrow">▼</span></button>
+      <div class="varref-body" id="varrefBody">
+        <table class="mapping-table">
+          <thead><tr><th>変数</th><th>Google API フィールド</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr class="group-row"><td colspan="3">位置情報</td></tr>
+            <tr><td><span class="var-chip">{{lat}}</span></td><td><code>geometry.location.lat</code></td><td>緯度</td></tr>
+            <tr><td><span class="var-chip">{{lng}}</span></td><td><code>geometry.location.lng</code></td><td>経度</td></tr>
+            <tr><td><span class="var-chip">{{postalCode}}</span></td><td><code>address_components[postal_code]</code></td><td>郵便番号</td></tr>
+            <tr><td><span class="var-chip">{{placeId}}</span></td><td><code>place_id</code></td><td>Google固有ID</td></tr>
+            <tr><td><span class="var-chip">{{locationType}}</span></td><td><code>geometry.location_type</code></td><td>ROOFTOP等</td></tr>
+            <tr class="group-row"><td colspan="3">住所分解（ベストエフォート）</td></tr>
+            <tr><td><span class="var-chip">{{prefecture}}</span></td><td><code>administrative_area_level_1</code></td><td>47都道府県リストと照合</td></tr>
+            <tr><td><span class="var-chip">{{address1}}</span></td><td><code>locality + sublocality_level_1</code></td><td>市区町村+町名</td></tr>
+            <tr><td><span class="var-chip">{{address2}}</span></td><td><code>sublocality_level_2〜4 + premise</code></td><td>丁目・番地</td></tr>
+            <tr><td><span class="var-chip">{{building}}</span></td><td><code>establishment / point_of_interest</code></td><td>施設名</td></tr>
+            <tr class="group-row"><td colspan="3">その他</td></tr>
+            <tr><td><span class="var-chip">{{query}}</span></td><td>（入力値）</td><td>検索キーワードそのまま</td></tr>
+            <tr><td><span class="var-chip">{{formattedAddress}}</span></td><td><code>formatted_address</code></td><td>Googleの住所全文</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="result-pane">
+      <div class="result-header">
+        <div class="result-meta">
+          <span class="badge" id="statusBadge">WAITING</span>
+          <span class="result-place" id="resultPlace">検索すると結果がここに表示されます</span>
+        </div>
+        <button class="btn-copy" id="copyBtn">コピー</button>
+      </div>
+      <div class="json-output" id="jsonOutput" style="min-height:220px;"></div>
+    </div>
+
+  </div>
+
+  <!-- History -->
+  <div class="card history-card">
+    <span class="pane-label">履歴</span>
+    <div class="history-list" id="historyList">
+      <span class="history-empty">まだ履歴がありません</span>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
