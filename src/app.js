@@ -6,6 +6,34 @@ const PRESETS = {
   full:        `{\n  "query": "{{query}}",\n  "formattedAddress": "{{formattedAddress}}",\n  "geocode": {\n    "lat": {{lat}},\n    "lng": {{lng}}\n  },\n  "postalCode": "{{postalCode}}",\n  "placeId": "{{placeId}}",\n  "locationType": "{{locationType}}",\n  "address": {\n    "prefecture": "{{prefecture}}",\n    "address1": "{{address1}}",\n    "address2": "{{address2}}",\n    "building": "{{building}}"\n  }\n}`,
 };
 
+/* ── Theme ── */
+const THEME_CYCLE = ['system', 'light', 'dark'];
+const THEME_LABELS = { system: '\u25D1 Auto', light: '\u2600 Light', dark: '\u263E Dark' };
+
+function getSystemTheme() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(pref) {
+  const resolved = pref === 'system' ? getSystemTheme() : pref;
+  document.documentElement.setAttribute('data-theme', resolved);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = THEME_LABELS[pref];
+}
+
+function cycleTheme() {
+  const current = localStorage.getItem('geo_theme') || 'system';
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+  localStorage.setItem('geo_theme', next);
+  applyTheme(next);
+}
+
+// Apply saved theme immediately to avoid flash
+applyTheme(localStorage.getItem('geo_theme') || 'system');
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if ((localStorage.getItem('geo_theme') || 'system') === 'system') applyTheme('system');
+});
+
 let currentData = null;
 let candidates  = [];
 let history     = JSON.parse(localStorage.getItem('geo_history') || '[]');
@@ -66,6 +94,7 @@ window.onload = () => {
   document.getElementById('templateInput').addEventListener('input', updateResult);
   document.getElementById('varrefToggleBtn').addEventListener('click', toggleVarRef);
   document.getElementById('copyBtn').addEventListener('click', copyResult);
+  document.getElementById('themeToggle').addEventListener('click', cycleTheme);
 };
 
 /* ── Address parsing ── */
